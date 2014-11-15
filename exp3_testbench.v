@@ -1,5 +1,5 @@
 `timescale 1ns/1ps
-`define CYCLE	100
+`define CYCLE	20 // ns
 `define END_CYCLE 30000
 
 module testbench;
