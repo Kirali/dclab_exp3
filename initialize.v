@@ -35,8 +35,8 @@ done
     reg done;
     wire next_done;
     
-    reg ack;
-    reg next_ack;
+    //reg ack;
+    //reg next_ack;
     
 //==== combinational part ==================================
 
@@ -44,24 +44,24 @@ done
     always@(*) begin
         case(state)
             INITIAL: begin
-                if (counter%8 == 7) begin
+                if (counter%8 == 7 && counter != 8'b11111111) begin
                     next_state = WAIT;
-                    next_ack = 1'b1;
+                    //next_ack = 1'b1;
                 end
                 else begin
                     next_state = INITIAL;
-                    next_ack = 1'b1;
+                    //next_ack = 1'b1;
                 end
             end
             
             WAIT: begin
-                if (ack == 0) begin
+                if (I2C_SDAT == 0) begin
                     next_state = INITIAL;
-                    next_ack = 1'b1;
+                    //next_ack = 1'b1;
                 end
                 else begin
                     next_state = WAIT;
-                    next_ack = I2C_SDAT;
+//next_ack = I2C_SDAT;
                 end
             end
         endcase
@@ -84,16 +84,18 @@ done
     
     assign next_done = (counter == 8'd239)? 1 : 0;
 //==== sequential part =====================================  
-    always@(posedge clk or posedge reset)
-        if (reset == 1) begin
+    always@(posedge clk or negedge reset)
+        if (reset == 0) begin
             state <= INITIAL;
-            counter <= 8'd0;
+            counter <= 8'b11111111;
             done <= 0;
+            //ack <= 0;
         end
         else begin
             state <= next_state;
             done <= next_done;
             counter <= next_counter;
+            //ack <= next_ack;
         end
     
 endmodule
