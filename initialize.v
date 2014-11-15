@@ -30,16 +30,18 @@ done
     reg  state;
     reg  next_state;
     reg [7:0] counter;
-    wire [7:0] next_counter;
+    reg [7:0] next_counter;
     wire [0:239] initialize_dat;
     reg done;
     wire next_done;
-    
-    //reg ack;
-    //reg next_ack;
+    wire clk_500;
+    reg flag;
+    reg next_flag;
     
 //==== combinational part ==================================
 
+    clksrc clksrc1 (clk, clk_500);
+    assign I2C_SCLK = (state == INITIAL)? clk_500 : 1'b1;
         // finite state machine
     always@(*) begin
         case(state)
@@ -69,7 +71,27 @@ done
     
     assign I2C_SDAT = (state == INITIAL)? initialize_dat[counter] : 1'bz;
     
-    assign next_counter = (state == INITIAL)? counter+1'b1 : counter;
+    always@(*) begin
+        if(state == INITIAL) begin
+            if(I2C_SCLK ==1 && flag == 0) begin
+                next_counter = counter + 8'd1;
+                next_flag = 1;
+            end
+            else if (I2C_SCLK ==1 && flag == 1) begin
+                next_counter = counter;
+                next_flag = 1;
+            end
+            else begin // I2C_SCLK == 0
+                next_counter = counter;
+                next_flag = 0;
+            end
+        end
+        else begin
+            next_counter = 8'b11111111;
+            next_flag = 0;
+        end
+    end
+    //next_counter = (state == INITIAL && )? counter+1'b1 : counter;
     
     assign initialize_dat[0  :23 ] = 24'b001101000000000010010111;
     assign initialize_dat[24 :47 ] = 24'b001101000000001010010111;
@@ -89,13 +111,13 @@ done
             state <= INITIAL;
             counter <= 8'b11111111;
             done <= 0;
-            //ack <= 0;
+            flag <= 0;
         end
         else begin
             state <= next_state;
             done <= next_done;
             counter <= next_counter;
-            //ack <= next_ack;
+            flag <= next_flag;
         end
     
 endmodule
