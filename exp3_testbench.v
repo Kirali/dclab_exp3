@@ -1,6 +1,7 @@
 `timescale 1ns/1ps
+`define I2C_CYCLE   2000 //ns
 `define CYCLE	20 // ns
-`define END_CYCLE 30000
+`define END_CYCLE 300
 
 module testbench;
 //===============================================
@@ -18,6 +19,9 @@ module testbench;
 	wire	AUD_DACLRCK;
 	wire	AUD_ADCDAT;
 	wire	AUD_ADCLRCK;
+    wire    I2C_SCLK_o;
+    wire    I2C_SDAT_o;
+    wire    [7:0] dat_o;
 
 	// indices
 	integer i;
@@ -32,7 +36,10 @@ module testbench;
 		.AUD_DACDAT(AUD_DACDAT),
 		.AUD_DACLRCK(AUD_DACLRCK),
 		.AUD_ADCDAT(AUD_ADCDAT),
-		.AUD_ADCLRCK(AUD_ADCLRCK)
+		.AUD_ADCLRCK(AUD_ADCLRCK),
+        .I2C_SCLK_o(I2C_SCLK_o),
+        .I2C_SDAT_o(I2C_SDAT_o),
+        .dat_o(dat_o)
 	);
 
 //============= Create Wave File ================
@@ -56,13 +63,13 @@ module testbench;
         clk     = 1'b1;
         reset   = 1'b1; 
 
-        #(`CYCLE) reset = 1'b0; // t = 1
-        #(`CYCLE) reset = 1'b1; // t = 2
+        #(`I2C_CYCLE) reset = 1'b0;
+        #(`I2C_CYCLE) reset = 1'b1;
 
 		#(0.001);
 		i = 1;
 		while(i <= `END_CYCLE) begin
-			#(`CYCLE);
+			#(`I2C_CYCLE);
             i = i + 1;
 		end
         

@@ -10,8 +10,12 @@ AUD_BCLK,
 AUD_DACDAT,
 AUD_DACLRCK,
 AUD_ADCDAT,
-AUD_ADCLRCK
+AUD_ADCLRCK,
 
+// observation
+I2C_SCLK_o,
+I2C_SDAT_o,
+dat_o
 // Memory
 // SRAM_ADDR,
 // SRAM_DQ,
@@ -65,9 +69,15 @@ AUD_ADCLRCK
     // output SRAM_UB_N;
     // output SRAM_LB_N;
     
+    // observation
+    output I2C_SCLK_o;
+    output I2C_SDAT_o;
+    output [7:0] dat_o;
+    
     // ------inout-------
     // inout [15:0] SRAM_DQ;
     inout I2C_SDAT;
+    // output I2C_SDAT;
  
 //==== reg/wire declaration ================================
     reg [1:0] state;
@@ -77,6 +87,10 @@ AUD_ADCLRCK
     
     
 //==== combinational part ==================================
+    // observation
+    assign I2C_SCLK_o = I2C_SCLK;
+    assign I2C_SDAT_o = I2C_SDAT;
+    
     // finite state machine
     always@(*) begin
         case(state)
@@ -115,7 +129,7 @@ AUD_ADCLRCK
         endcase
     end
 
-    initialize initilaize_1 (.reset(reset), .clk(clk), .I2C_SCLK(I2C_SCLK), .I2C_SDAT(I2C_SDAT), .done(initial_done));
+    initialize initilaize_1 (.reset(reset), .clk(clk), .I2C_SCLK(I2C_SCLK), .I2C_SDAT(I2C_SDAT), .done(initial_done), .dat_o(dat_o));
     assign AUD_DACDAT = AUD_ADCDAT;
     assign AUD_XCK = clk;
     
