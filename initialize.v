@@ -4,7 +4,7 @@ clk,
 // CODEC
 I2C_SCLK,
 I2C_SDAT,
-dat_o,
+// dat_o,
 
 done
 );
@@ -27,7 +27,7 @@ done
     output I2C_SCLK;
     output done;
     
-    output [7:0] dat_o;
+    // output [7:0] dat_o;
     // ------inout-------
     inout  I2C_SDAT;
  
@@ -61,7 +61,7 @@ done
 
     clksrc clksrc1 (clk, clk_500);
     assign next_I2C_SCLK = (state == INITIAL || state == WAIT)? ~clk_500 : start_clk;
-    assign dat_o = initialize_dat[0:7];
+    // assign dat_o = initialize_dat[0:7];
     assign I2C_SDAT = tmp_I2C_SDAT;
     
         // finite state machine

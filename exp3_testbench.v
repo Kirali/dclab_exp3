@@ -37,8 +37,8 @@ module testbench;
 		.AUD_DACLRCK(AUD_DACLRCK),
 		.AUD_ADCDAT(AUD_ADCDAT),
 		.AUD_ADCLRCK(AUD_ADCLRCK),
-        .I2C_SCLK_o(I2C_SCLK_o),
-        .I2C_SDAT_o(I2C_SDAT_o),
+        .SCLK_o(SCLK_o),
+        .SDAT_o(SDAT_o),
         .dat_o(dat_o)
 	);
 
