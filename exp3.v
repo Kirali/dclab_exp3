@@ -84,12 +84,15 @@ dat_o
     reg [1:0] next_state;
     wire initial_done;
     reg next_initial_done;
+    wire clk_12;
     
     
 //==== combinational part ==================================
     // observation
     assign I2C_SCLK_o = I2C_SCLK;
     assign I2C_SDAT_o = I2C_SDAT;
+    
+    clksrc12 clksrc12_1 (clk, clk_12);
     
     // finite state machine
     always@(*) begin
@@ -131,7 +134,7 @@ dat_o
 
     initialize initilaize_1 (.reset(reset), .clk(clk), .I2C_SCLK(I2C_SCLK), .I2C_SDAT(I2C_SDAT), .done(initial_done), .dat_o(dat_o));
     assign AUD_DACDAT = AUD_ADCDAT;
-    assign AUD_XCK = clk;
+    assign AUD_XCK = clk_12;
     
 //==== sequential part =====================================  
     always@(posedge clk or posedge reset)
