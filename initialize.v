@@ -53,57 +53,24 @@ done
     reg tmp_I2C_SDAT;
     reg [3:0] start_counter;
     reg [3:0] next_start_counter;
+    reg start_clk;
 
     
     
 //==== combinational part ==================================
 
     clksrc clksrc1 (clk, clk_500);
-    assign next_I2C_SCLK = (state == INITIAL || state == WAIT)? ~clk_500 : 1;
+    assign next_I2C_SCLK = (state == INITIAL || state == WAIT)? ~clk_500 : start_clk;
     assign dat_o = initialize_dat[0:7];
     assign I2C_SDAT = tmp_I2C_SDAT;
     
         // finite state machine
     always@(*) begin
         case(state)
-            // INITIAL: begin
-                // if (counter%8 == 7 && counter != 8'b11111111) begin
-                    // if (I2C_SCLK == 1 && state_flag == 0) begin  // flag == 00 -> 01
-                        // next_tmp_state = WAIT;
-                        // next_state = tmp_state;
-                        // next_state_flag = 1;
-                    // end
-                    // else if (I2C_SCLK == 1 && state_flag == 1) begin // flag == 10
-                        // next_tmp_state = WAIT;
-                        // next_state = state;
-                        // next_state_flag = 1;
-                    // end
-                    // else begin // I2C_SCLK == 0
-                        // next_tmp_state = WAIT;
-                        // next_state = state;
-                        // next_state_flag = 0;
-                    // end
-                // end
-                // else begin
-                    // if (I2C_SCLK == 1 && state_flag == 0) begin // flag == 00 -> 01
-                        // next_tmp_state = INITIAL;
-                        // next_state = tmp_state;
-                        // next_state_flag = 1;
-                    // end
-                    // else if (I2C_SCLK == 1 && state_flag == 1) begin // flag == 1
-                        // next_tmp_state = INITIAL;
-                        // next_state = state;
-                        // next_state_flag = 1;
-                    // end
-                    // else begin // I2C_SCLK == 0
-                        // next_tmp_state = INITIAL;
-                        // next_state = state;
-                        // next_state_flag = 0;
-                    // end
-                // end
-            // end
+
             START: begin
                 if (start_counter < 4'd7) begin
+                    start_clk = 1;
                     tmp_I2C_SDAT = 1'b1;
                     next_tmp_state = START;
                     next_state = tmp_state;
@@ -111,6 +78,7 @@ done
                     next_start_counter = start_counter + 1;
                 end
                 else if (start_counter < 10) begin
+                    start_clk = 1;
                     tmp_I2C_SDAT = 1'b0;
                     next_tmp_state = START;
                     next_state = tmp_state;
@@ -119,25 +87,48 @@ done
 
                 end
                 else begin
+                    start_clk = 0;
                     tmp_I2C_SDAT = 1'b0;
                     next_tmp_state = INITIAL;
                     next_state = tmp_state;
                     next_state_flag = 0;
-                    next_start_counter = start_counter + 1;
+                    next_start_counter = start_counter;
                 end
             end
             
             STOP: begin
-                tmp_I2C_SDAT = 1'b1;
-                next_tmp_state = STOP;
-                next_state = tmp_state;
-                next_state_flag = 0;
-                next_start_counter = start_counter;
+                start_clk = 1;
+                if (start_counter < 4'd7) begin
+                    tmp_I2C_SDAT = 1'b0;
+                    next_tmp_state = STOP;
+                    next_state = tmp_state;
+                    next_state_flag = 0;
+                    next_start_counter = start_counter + 1;
+                end
+                else if (start_counter < 10) begin
+                    tmp_I2C_SDAT = 1'b1;
+                    next_tmp_state = STOP;
+                    next_state = tmp_state;
+                    next_state_flag = 0;
+                    next_start_counter = start_counter + 1;
+
+                end
+                else begin
+                    tmp_I2C_SDAT = 1'b1;
+                    if (counter >= 8'd240) 
+                        next_tmp_state = STOP;
+                    else
+                        next_tmp_state = START;
+                    next_state = tmp_state;
+                    next_state_flag = 0;
+                    next_start_counter = start_counter;
+                end
             end
             
             INITIAL: begin
+                start_clk = 1;
                 tmp_I2C_SDAT = initialize_dat[counter];
-                next_start_counter = start_counter;
+                next_start_counter = 0;
                     if (done == 1) begin
                         next_tmp_state = STOP;
                         next_state = tmp_state;
@@ -168,22 +159,16 @@ done
                         next_state_flag = 0;
                     end
                 
-            end
-            
-            
-            
-            
+            end          
             
             WAIT: begin
+                start_clk = 1;
                 tmp_I2C_SDAT = 1'bz;
-                next_start_counter = start_counter;
-                    if (done == 1) begin
-                        next_tmp_state = STOP;
-                        next_state = tmp_state;
-                        next_state_flag = 0;
-                    end
-                    else if (I2C_SCLK == 0 && state_flag == 0) begin // flag == 00 -> 01
-                        if (I2C_SDAT == 0)
+                next_start_counter = 0;
+                    if (I2C_SCLK == 0 && state_flag == 0) begin // flag == 00 -> 01
+                        if (counter % 24 == 0)
+                            next_tmp_state = STOP;
+                        else if (I2C_SDAT == 0)
                             next_tmp_state = INITIAL;
                         else
                             next_tmp_state = tmp_state;
@@ -191,7 +176,9 @@ done
                         next_state_flag = 1;
                     end
                     else if (I2C_SCLK == 0 && state_flag == 1) begin // flag == 1
-                        if (I2C_SDAT == 0)
+                        if (counter % 24 == 0)
+                            next_tmp_state = STOP;
+                        else if (I2C_SDAT == 0)
                             next_tmp_state = INITIAL;
                         else
                             next_tmp_state = tmp_state;
@@ -199,7 +186,9 @@ done
                         next_state_flag = 1;
                     end
                     else begin // I2C_SCLK == 0
-                       if (I2C_SDAT == 0)
+                        if (counter % 24 == 0)
+                            next_tmp_state = STOP;
+                        else if (I2C_SDAT == 0)
                             next_tmp_state = INITIAL;
                         else
                             next_tmp_state = tmp_state;
@@ -208,43 +197,7 @@ done
                     end
             end
                     
-            // WAIT: begin
-                // if (I2C_SDAT == 0) begin
-                    // if (I2C_SCLK == 1 && state_flag == 0) begin // flag == 00 -> 01
-                        // next_tmp_state = INITIAL;
-                        // next_state = tmp_state;
-                        // next_state_flag = 1;
-                    // end
-                    // else if (I2C_SCLK == 1 && state_flag == 1) begin // flag == 1
-                        // next_tmp_state = INITIAL;
-                        // next_state = state;
-                        // next_state_flag = 1;
-                    // end
-                    // else begin // I2C_SCLK == 0
-                        // next_tmp_state = INITIAL;
-                        // next_state = state;
-                        // next_state_flag = 0;
-                    // end
-                    
-                // end
-                // else begin // I2C_SDAT != 0
-                    // if (I2C_SCLK == 1 && state_flag == 0) begin // flag == 00 -> 01
-                        // next_tmp_state = WAIT;
-                        // next_state = tmp_state;
-                        // next_state_flag = 1;
-                    // end
-                    // else if (I2C_SCLK == 1 && state_flag == 1) begin // flag == 1
-                        // next_tmp_state = WAIT;
-                        // next_state = state;
-                        // next_state_flag = 1;
-                    // end
-                    // else begin // I2C_SCLK == 0
-                        // next_tmp_state = WAIT;
-                        // next_state = state;
-                        // next_state_flag = 0;
-                    // end
-                // end
-            // end
+            
         endcase
     end
     
@@ -318,8 +271,8 @@ done
         if (reset == 0) begin
             state <= START;
             tmp_state <= START;
-            counter <= 8'b11111111;
-            tmp_count <= 8'b11111111;
+            counter <= 8'b0;
+            tmp_count <= 8'b0;
             done <= 0;
             flag <= 0;
             state_flag = 0;
